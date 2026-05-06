@@ -346,7 +346,11 @@ function render() {
     day.notes.slice(0,2).forEach(n => {
       const isDangerNote = DANGER_NOTES.includes(n) || n === '사료토 네번';
       const isVomitNote = n.startsWith('사료토') || n.startsWith('헤어볼 토') || n.startsWith('물 토') || n === '혈토';
-      const chipCls = isDangerNote ? 'chip danger-chip' : isVomitNote ? 'chip vomit-chip' : 'chip';
+      let chipCls;
+      if (danger) chipCls = 'chip danger-chip';
+      else if (isDangerNote || isVomitNote) chipCls = 'chip vomit-chip';
+      else if (hasVomit) chipCls = 'chip vomit-chip';
+      else chipCls = 'chip';
       chips += `<div class="${chipCls}">${n}</div>`;
     });
     if (day.photos.length) chips += `<div class="chip photo-chip">📷 ${day.photos.length}장</div>`;
