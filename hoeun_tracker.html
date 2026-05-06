@@ -85,6 +85,8 @@
   .day-cell.empty:active { transform: none; }
   .day-cell.today { border-color: var(--mint-400); background: var(--mint-50); }
   .day-cell.has-note { background: #EAF7F2; border-color: var(--mint-200); }
+  .day-cell.has-vomit { background: #FFF3E0; border-color: #FFBA6B; }
+  .day-cell.has-vomit .day-num { color: #E07A00; }
 
   .day-num { font-size: 12px; color: var(--text-sub); margin-bottom: 3px; padding-left: 1px; }
   .day-cell.today .day-num { color: var(--mint-600); font-weight: 700; }
@@ -316,12 +318,14 @@ function render() {
     const dow = new Date(y,m,d).getDay();
     const isToday = d===today.getDate()&&m===today.getMonth()&&y===today.getFullYear();
     const hasData = day.notes.length || day.photos.length;
+    const hasVomit = day.notes.some(n => n.startsWith('사료토') || n.startsWith('헤어볼 토') || n.startsWith('물 토'));
     const cell = document.createElement('div');
     let cls = 'day-cell';
     if (dow===0) cls += ' sunday';
     if (dow===6) cls += ' saturday';
     if (isToday) cls += ' today';
-    if (hasData) cls += ' has-note';
+    if (hasVomit) cls += ' has-vomit';
+    else if (hasData) cls += ' has-note';
     cell.className = cls;
 
     let chips = '';
