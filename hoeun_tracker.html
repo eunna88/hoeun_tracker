@@ -302,7 +302,7 @@ function render() {
     const k = dayKey(y,m,d);
     const day = allData[k];
     if (day && (day.notes.length || day.photos.length)) recordDays++;
-    if (day) day.notes.forEach(n => { if(n.includes('토')) vomitCount++; });
+    if (day) day.notes.forEach(n => { if(n.startsWith('사료토') || n.startsWith('헤어볼 토') || n.startsWith('물 토')) vomitCount++; });
   }
   document.getElementById('sum-days').textContent = recordDays + '일';
   document.getElementById('sum-vomit').textContent = vomitCount + '번';
