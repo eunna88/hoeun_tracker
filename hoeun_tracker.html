@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="호은이 일지">
+<title>호은이 건강일지</title>
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" rel="stylesheet">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+  :root {
+    --mint-50:  #F0FBF7;
+    --mint-100: #C8EFE0;
+    --mint-200: #96DEC3;
+    --mint-400: #3EBF94;
+    --mint-600: #1D9070;
+    --mint-800: #0F5E49;
+    --cream:    #F7FBF9;
+    --text-main: #1A3330;
+    --text-sub:  #4E7A6E;
+    --text-hint: #9BBFB5;
+    --border:    #C2E2D8;
+    --white:     #FFFFFF;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--cream);
+    color: var(--text-main);
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overscroll-behavior: none;
+  }
+
+  .app-header {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 18px 10px;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .header-top { display: flex; align-items: center; justify-content: space-between; }
+  .app-title { font-size: 17px; font-weight: 700; color: var(--mint-600); display: flex; align-items: center; gap: 6px; }
+  .month-nav { display: flex; align-items: center; gap: 8px; }
+  .nav-btn {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid var(--border); background: var(--white);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: var(--mint-600); font-size: 15px; transition: background 0.15s;
+  }
+  .nav-btn:active { background: var(--mint-50); }
+  .month-label { font-size: 14px; font-weight: 500; color: var(--text-main); min-width: 72px; text-align: center; }
+
+  .summary-row { display: flex; gap: 8px; padding: 12px 14px; }
+  .summary-pill {
+    flex: 1; background: var(--white); border: 1px solid var(--border);
+    border-radius: 20px; padding: 8px 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .pill-icon { font-size: 15px; color: var(--mint-400); }
+  .pill-text { font-size: 11px; color: var(--text-sub); }
+  .pill-val { font-size: 15px; font-weight: 500; color: var(--mint-800); margin-left: auto; }
+
+  .calendar-wrap { padding: 0 10px 100px; }
+  .weekdays { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 4px; }
+  .wd { text-align: center; font-size: 11px; color: var(--text-hint); padding: 4px 0; }
+  .wd.sun { color: #F87171; }
+  .wd.sat { color: #818CF8; }
+
+  .calendar { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+
+  .day-cell {
+    min-height: 68px; border-radius: 10px;
+    border: 1px solid transparent; padding: 5px 4px;
+    cursor: pointer; background: var(--white);
+    display: flex; flex-direction: column;
+    transition: transform 0.1s; overflow: hidden;
+  }
+  .day-cell:active { transform: scale(0.95); }
+  .day-cell.empty { background: transparent; border-color: transparent; cursor: default; }
+  .day-cell.empty:active { transform: none; }
+  .day-cell.today { border-color: var(--mint-400); background: var(--mint-50); }
+  .day-cell.has-note { background: #EAF7F2; border-color: var(--mint-200); }
+
+  .day-num { font-size: 12px; color: var(--text-sub); margin-bottom: 3px; padding-left: 1px; }
+  .day-cell.today .day-num { color: var(--mint-600); font-weight: 700; }
+  .day-cell.sunday .day-num { color: #F87171; }
+  .day-cell.saturday .day-num { color: #818CF8; }
+
+  .note-stack { display: flex; flex-direction: column; gap: 2px; }
+  .chip {
+    font-size: 9px; background: var(--mint-100); color: var(--mint-800);
+    border-radius: 4px; padding: 1px 3px; line-height: 1.4;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .chip.photo-chip { background: #E0F2FE; color: #0369A1; }
+  .more-badge { font-size: 9px; color: var(--text-hint); padding-left: 2px; }
+
+  /* Bottom sheet */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(15,50,42,0.3);
+    z-index: 100; display: none; align-items: flex-end; backdrop-filter: blur(2px);
+  }
+  .overlay.open { display: flex; }
+  .sheet {
+    width: 100%; background: var(--white); border-radius: 22px 22px 0 0;
+    padding: 0 0 44px; max-height: 90vh; overflow-y: auto;
+    animation: slideUp 0.25s cubic-bezier(0.32,0.72,0,1);
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 10px auto 0; }
+  .sheet-header {
+    padding: 14px 20px 10px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--mint-50);
+  }
+  .sheet-date { font-size: 16px; font-weight: 500; color: var(--text-main); }
+  .sheet-close {
+    width: 28px; height: 28px; border-radius: 50%; border: none;
+    background: var(--mint-50); color: var(--mint-600);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+
+  .notes-area { padding: 10px 16px 4px; }
+  .empty-note { text-align: center; color: var(--text-hint); font-size: 13px; padding: 14px 0; }
+
+  .note-row {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    background: var(--mint-50); border-radius: 10px; padding: 9px 12px;
+    margin-bottom: 6px; gap: 8px;
+  }
+  .note-row span { font-size: 14px; color: var(--text-main); flex: 1; line-height: 1.5; }
+  .del-btn { background: none; border: none; color: var(--text-hint); cursor: pointer; font-size: 16px; padding: 0; line-height: 1; flex-shrink: 0; }
+  .del-btn:active { color: var(--mint-600); }
+
+  /* Photo section */
+  .photo-section { padding: 4px 16px 10px; }
+  .photo-label { font-size: 11px; color: var(--text-hint); margin-bottom: 8px; }
+  .photo-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .photo-thumb {
+    width: 72px; height: 72px; border-radius: 10px; object-fit: cover;
+    border: 1px solid var(--border); cursor: pointer;
+  }
+  .photo-add-btn {
+    width: 72px; height: 72px; border-radius: 10px;
+    border: 1.5px dashed var(--border); background: var(--mint-50);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; cursor: pointer; color: var(--mint-400); font-size: 22px;
+  }
+  .photo-add-btn span { font-size: 10px; color: var(--text-hint); }
+
+  /* Photo viewer */
+  .photo-viewer {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+    z-index: 200; display: none; align-items: center; justify-content: center;
+    flex-direction: column; gap: 14px;
+  }
+  .photo-viewer.open { display: flex; }
+  .photo-viewer img { max-width: 92vw; max-height: 75vh; border-radius: 12px; object-fit: contain; }
+  .photo-viewer-btns { display: flex; gap: 10px; }
+  .pv-btn { border: none; border-radius: 10px; padding: 9px 18px; font-size: 13px; font-family: 'Noto Sans KR', sans-serif; cursor: pointer; }
+  .pv-close { background: rgba(255,255,255,0.15); color: white; }
+  .pv-del { background: #EF4444; color: white; }
+
+  .sheet-divider { height: 1px; background: var(--mint-50); margin: 4px 0; }
+
+  .input-row { display: flex; gap: 8px; padding: 0 16px 4px; }
+  .note-input {
+    flex: 1; height: 42px; border: 1px solid var(--border); border-radius: 12px;
+    padding: 0 14px; font-size: 14px; font-family: 'Noto Sans KR', sans-serif;
+    color: var(--text-main); background: var(--mint-50); outline: none; -webkit-appearance: none;
+  }
+  .note-input:focus { border-color: var(--mint-400); background: var(--white); }
+  .add-btn {
+    height: 42px; padding: 0 16px; border-radius: 12px; border: none;
+    background: var(--mint-600); color: white; font-size: 14px;
+    font-family: 'Noto Sans KR', sans-serif; cursor: pointer; white-space: nowrap;
+  }
+  .add-btn:active { background: var(--mint-800); }
+
+  .quick-section { padding: 4px 16px 10px; }
+  .quick-label { font-size: 11px; color: var(--text-hint); margin-bottom: 8px; }
+  .quick-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
+  .q-chip {
+    border: 1px solid var(--border); border-radius: 20px; padding: 5px 11px;
+    font-size: 12px; color: var(--mint-800); background: var(--white);
+    cursor: pointer; font-family: 'Noto Sans KR', sans-serif;
+  }
+  .q-chip:active { background: var(--mint-50); }
+
+  .install-hint {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--text-main); color: white; font-size: 12px;
+    padding: 10px 16px; border-radius: 12px; opacity: 0; pointer-events: none;
+    transition: opacity 0.3s; z-index: 300; text-align: center;
+    max-width: 290px; line-height: 1.5;
+  }
+  .install-hint.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-top">
+    <div class="app-title">🐾 호은이 건강일지</div>
+    <div class="month-nav">
+      <button class="nav-btn" id="prev"><i class="ti ti-chevron-left"></i></button>
+      <span class="month-label" id="month-label"></span>
+      <button class="nav-btn" id="next"><i class="ti ti-chevron-right"></i></button>
+    </div>
+  </div>
+</div>
+
+<div class="summary-row">
+  <div class="summary-pill">
+    <i class="ti ti-calendar pill-icon"></i>
+    <span class="pill-text">기록한 날</span>
+    <span class="pill-val" id="sum-days">0일</span>
+  </div>
+  <div class="summary-pill">
+    <i class="ti ti-alert-circle pill-icon"></i>
+    <span class="pill-text">이번 달 토 횟수</span>
+    <span class="pill-val" id="sum-vomit">0번</span>
+  </div>
+</div>
+
+<div class="calendar-wrap">
+  <div class="weekdays">
+    <div class="wd sun">일</div>
+    <div class="wd">월</div><div class="wd">화</div><div class="wd">수</div>
+    <div class="wd">목</div><div class="wd">금</div>
+    <div class="wd sat">토</div>
+  </div>
+  <div class="calendar" id="calendar"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-date" id="sheet-date"></div>
+      <button class="sheet-close" id="sheet-close"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="notes-area" id="notes-area"></div>
+    <div class="photo-section">
+      <div class="photo-label">사진</div>
+      <div class="photo-grid" id="photo-grid"></div>
+    </div>
+    <div class="sheet-divider"></div>
+    <div class="input-row">
+      <input class="note-input" id="note-input" placeholder="메모 직접 입력..." />
+      <button class="add-btn" id="add-btn">추가</button>
+    </div>
+    <div class="quick-section">
+      <div class="quick-label">빠른 입력</div>
+      <div class="quick-wrap" id="quick-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<div class="photo-viewer" id="photo-viewer">
+  <img id="pv-img" src="" alt="사진">
+  <div class="photo-viewer-btns">
+    <button class="pv-btn pv-del" id="pv-del">삭제</button>
+    <button class="pv-btn pv-close" id="pv-close">닫기</button>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept="image/*" style="display:none">
+<div class="install-hint" id="install-hint"></div>
+
+<script>
+const QUICK = ['사료토 한번','사료토 두번','사료토 세번','털 토','물 토','식욕 없음','구토 후 잘 먹음','밥 잘 먹음','활발함','기운 없음','병원 방문','약 먹음'];
+const STORAGE_KEY = 'hoeun_data_v2';
+
+let cur = new Date();
+let selKey = null;
+let allData = {};
+let pvPhotoIdx = -1;
+
+function load() {
+  try { allData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { allData = {}; }
+}
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(allData)); }
+function dayKey(y,m,d) { return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function getDay(k) { if (!allData[k]) allData[k] = {notes:[],photos:[]}; return allData[k]; }
+
+function render() {
+  const y = cur.getFullYear(), m = cur.getMonth();
+  document.getElementById('month-label').textContent = `${y}.${String(m+1).padStart(2,'0')}`;
+  const first = new Date(y,m,1).getDay();
+  const days = new Date(y,m+1,0).getDate();
+  const today = new Date();
+  const cal = document.getElementById('calendar');
+  cal.innerHTML = '';
+
+  let recordDays = 0, vomitCount = 0;
+  for (let d=1; d<=days; d++) {
+    const k = dayKey(y,m,d);
+    const day = allData[k];
+    if (day && (day.notes.length || day.photos.length)) recordDays++;
+    if (day) day.notes.forEach(n => { if(n.includes('토')) vomitCount++; });
+  }
+  document.getElementById('sum-days').textContent = recordDays + '일';
+  document.getElementById('sum-vomit').textContent = vomitCount + '번';
+
+  for (let i=0; i<first; i++) {
+    const e = document.createElement('div'); e.className='day-cell empty'; cal.appendChild(e);
+  }
+  for (let d=1; d<=days; d++) {
+    const k = dayKey(y,m,d);
+    const day = allData[k] || {notes:[],photos:[]};
+    const dow = new Date(y,m,d).getDay();
+    const isToday = d===today.getDate()&&m===today.getMonth()&&y===today.getFullYear();
+    const hasData = day.notes.length || day.photos.length;
+    const cell = document.createElement('div');
+    let cls = 'day-cell';
+    if (dow===0) cls += ' sunday';
+    if (dow===6) cls += ' saturday';
+    if (isToday) cls += ' today';
+    if (hasData) cls += ' has-note';
+    cell.className = cls;
+
+    let chips = '';
+    day.notes.slice(0,2).forEach(n => { chips += `<div class="chip">${n}</div>`; });
+    if (day.photos.length) chips += `<div class="chip photo-chip">📷 ${day.photos.length}장</div>`;
+    if (day.notes.length > 2) chips += `<div class="more-badge">+${day.notes.length-2}</div>`;
+
+    cell.innerHTML = `<div class="day-num">${d}</div><div class="note-stack">${chips}</div>`;
+    cell.onclick = () => openSheet(k, y, m, d);
+    cal.appendChild(cell);
+  }
+}
+
+function openSheet(k, y, m, d) {
+  selKey = k;
+  document.getElementById('sheet-date').textContent = `${y}년 ${m+1}월 ${d}일`;
+  renderNotes(); renderPhotos(); renderQuick();
+  document.getElementById('note-input').value = '';
+  document.getElementById('overlay').classList.add('open');
+}
+
+function renderNotes() {
+  const day = allData[selKey] || {notes:[],photos:[]};
+  const area = document.getElementById('notes-area');
+  if (!day.notes.length) { area.innerHTML = `<div class="empty-note">아직 메모가 없어요 🐱</div>`; return; }
+  area.innerHTML = day.notes.map((n,i) => `
+    <div class="note-row">
+      <span>${n}</span>
+      <button class="del-btn" onclick="delNote(${i})"><i class="ti ti-x"></i></button>
+    </div>`).join('');
+}
+
+function renderPhotos() {
+  const day = allData[selKey] || {notes:[],photos:[]};
+  const grid = document.getElementById('photo-grid');
+  grid.innerHTML = '';
+  day.photos.forEach((src,i) => {
+    const img = document.createElement('img');
+    img.className = 'photo-thumb'; img.src = src;
+    img.onclick = () => openPhotoViewer(i);
+    grid.appendChild(img);
+  });
+  const addBtn = document.createElement('div');
+  addBtn.className = 'photo-add-btn';
+  addBtn.innerHTML = `<i class="ti ti-camera"></i><span>사진 추가</span>`;
+  addBtn.onclick = triggerPhoto;
+  grid.appendChild(addBtn);
+}
+
+function renderQuick() {
+  document.getElementById('quick-wrap').innerHTML =
+    QUICK.map(q => `<button class="q-chip" onclick="quickAdd('${q}')">${q}</button>`).join('');
+}
+
+function addNote(text) {
+  const v = (text || document.getElementById('note-input').value).trim();
+  if (!v) return;
+  getDay(selKey).notes.push(v);
+  save(); renderNotes(); render();
+  document.getElementById('note-input').value = '';
+}
+function quickAdd(t) { addNote(t); }
+function delNote(i) {
+  getDay(selKey).notes.splice(i,1);
+  save(); renderNotes(); render();
+}
+
+function triggerPhoto() { document.getElementById('file-input').click(); }
+
+document.getElementById('file-input').onchange = function(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => { getDay(selKey).photos.push(ev.target.result); save(); renderPhotos(); render(); };
+  reader.readAsDataURL(file);
+  this.value = '';
+};
+
+function openPhotoViewer(idx) {
+  pvPhotoIdx = idx;
+  document.getElementById('pv-img').src = (allData[selKey]||{photos:[]}).photos[idx];
+  document.getElementById('photo-viewer').classList.add('open');
+}
+document.getElementById('pv-close').onclick = () => document.getElementById('photo-viewer').classList.remove('open');
+document.getElementById('pv-del').onclick = () => {
+  getDay(selKey).photos.splice(pvPhotoIdx,1);
+  save(); renderPhotos(); render();
+  document.getElementById('photo-viewer').classList.remove('open');
+};
+
+document.getElementById('add-btn').onclick = () => addNote();
+document.getElementById('note-input').addEventListener('keydown', e => { if(e.key==='Enter') addNote(); });
+document.getElementById('sheet-close').onclick = closeSheet;
+document.getElementById('overlay').onclick = e => { if(e.target===document.getElementById('overlay')) closeSheet(); };
+document.getElementById('prev').onclick = () => { cur.setMonth(cur.getMonth()-1); render(); };
+document.getElementById('next').onclick = () => { cur.setMonth(cur.getMonth()+1); render(); };
+
+function closeSheet() { document.getElementById('overlay').classList.remove('open'); }
+
+function showInstallHint() {
+  if (localStorage.getItem('hint_v2')) return;
+  const hint = document.getElementById('install-hint');
+  hint.textContent = '📱 Safari 공유버튼 → "홈 화면에 추가" 하면 앱처럼 써요!';
+  hint.classList.add('show');
+  setTimeout(() => hint.classList.remove('show'), 5000);
+  localStorage.setItem('hint_v2','1');
+}
+
+load(); render(); setTimeout(showInstallHint, 1500);
+</script>
+</body>
+</html>
