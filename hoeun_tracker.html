@@ -87,6 +87,10 @@
   .day-cell.has-note { background: #EAF7F2; border-color: var(--mint-200); }
   .day-cell.has-vomit { background: #FFF3E0; border-color: #FFBA6B; }
   .day-cell.has-vomit .day-num { color: #E07A00; }
+  .day-cell.has-danger { background: #FEF2F2; border-color: #FCA5A5; }
+  .day-cell.has-danger .day-num { color: #991B1B; }
+  .chip.vomit-chip { background: #FFFFFF; color: #B45309; border: 1px solid #FFBA6B; }
+  .chip.danger-chip { background: #FECACA; color: #991B1B; }
 
   .day-num { font-size: 12px; color: var(--text-sub); margin-bottom: 3px; padding-left: 1px; }
   .day-cell.today .day-num { color: var(--mint-600); font-weight: 700; }
@@ -275,7 +279,15 @@
 <div class="install-hint" id="install-hint"></div>
 
 <script>
-const QUICK = ['사료토 한번','사료토 두번','사료토 세번','헤어볼 토','물 토','식욕 없음','구토 후 잘 먹음','밥 잘 먹음','활발함','기운 없음','병원 방문','약 먹음'];
+const QUICK = ['사료토 한번','사료토 두번','사료토 세번','사료토 네번','헤어볼 토','물 토','혈토','식욕 부진','구토 후 잘 먹음','밥 잘 먹음','활발함','기운 없음','병원 방문','약 먹음'];
+const DANGER_NOTES = ['혈토','식욕 부진'];
+function isDanger(notes) {
+  if (notes.some(n => DANGER_NOTES.includes(n))) return true;
+  let cnt = 0;
+  notes.forEach(n => { if(n.startsWith('사료토')) cnt++; });
+  if (notes.some(n => n === '사료토 네번')) return true;
+  return false;
+}
 const STORAGE_KEY = 'hoeun_data_v2';
 
 let cur = new Date();
@@ -304,7 +316,7 @@ function render() {
     const k = dayKey(y,m,d);
     const day = allData[k];
     if (day && (day.notes.length || day.photos.length)) recordDays++;
-    if (day) day.notes.forEach(n => { if(n.startsWith('사료토') || n.startsWith('헤어볼 토') || n.startsWith('물 토')) vomitCount++; });
+    if (day) day.notes.forEach(n => { if(n.startsWith('사료토') || n.startsWith('헤어볼 토') || n.startsWith('물 토') || n === '혈토') vomitCount++; });
   }
   document.getElementById('sum-days').textContent = recordDays + '일';
   document.getElementById('sum-vomit').textContent = vomitCount + '번';
@@ -318,18 +330,25 @@ function render() {
     const dow = new Date(y,m,d).getDay();
     const isToday = d===today.getDate()&&m===today.getMonth()&&y===today.getFullYear();
     const hasData = day.notes.length || day.photos.length;
-    const hasVomit = day.notes.some(n => n.startsWith('사료토') || n.startsWith('헤어볼 토') || n.startsWith('물 토'));
+    const hasVomit = day.notes.some(n => n.startsWith('사료토') || n.startsWith('헤어볼 토') || n.startsWith('물 토') || n === '혈토');
+    const danger = isDanger(day.notes);
     const cell = document.createElement('div');
     let cls = 'day-cell';
     if (dow===0) cls += ' sunday';
     if (dow===6) cls += ' saturday';
     if (isToday) cls += ' today';
-    if (hasVomit) cls += ' has-vomit';
+    if (danger) cls += ' has-danger';
+    else if (hasVomit) cls += ' has-vomit';
     else if (hasData) cls += ' has-note';
     cell.className = cls;
 
     let chips = '';
-    day.notes.slice(0,2).forEach(n => { chips += `<div class="chip">${n}</div>`; });
+    day.notes.slice(0,2).forEach(n => {
+      const isDangerNote = DANGER_NOTES.includes(n) || n === '사료토 네번';
+      const isVomitNote = n.startsWith('사료토') || n.startsWith('헤어볼 토') || n.startsWith('물 토') || n === '혈토';
+      const chipCls = isDangerNote ? 'chip danger-chip' : isVomitNote ? 'chip vomit-chip' : 'chip';
+      chips += `<div class="${chipCls}">${n}</div>`;
+    });
     if (day.photos.length) chips += `<div class="chip photo-chip">📷 ${day.photos.length}장</div>`;
     if (day.notes.length > 2) chips += `<div class="more-badge">+${day.notes.length-2}</div>`;
 
